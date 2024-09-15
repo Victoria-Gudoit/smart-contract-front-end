@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { MainContract } from "../contacts/MainContract";
 import { useTonClient } from "./useTonClient";
 import { useAsyncInitialize } from "./useAsyncInitialize";
-import { Address, OpenedContract } from "ton-core";
+import { Address, OpenedContract, toNano } from "ton-core";
+import { useTonConnect } from "./useTonConnect";
 
 export function useMainContract() {
   const client = useTonClient();
@@ -11,6 +12,10 @@ export function useMainContract() {
     recent_sender: Address;
     owner_address: Address;
   }>();
+
+  const { sender } = useTonConnect();
+    
+  const sleep = (time: number) => new Promise((resolve) => setTimeout(resolve, time));
 
   const mainContract = useAsyncInitialize(async () => {
     if (!client) return;
@@ -30,6 +35,8 @@ export function useMainContract() {
         recent_sender: val.recent_sender,
         owner_address: val.owner_address,
       });
+      await sleep(5000); // sleep 5 seconds and poll value again
+      getValue();
     }
     getValue();
   }, [mainContract]);
@@ -37,5 +44,8 @@ export function useMainContract() {
   return {
     contract_address: mainContract?.address.toString(),
     ...contractData,
+    sendIncrement: () => {
+      return mainContract?.sendIncrement(sender, toNano(0.05), 3);
+    },
   };
 }
